@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- 禁止缩放 -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"
+    />
+    <title></title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script>
+      // 长按屏幕3秒清除缓存并刷新页面
+      let pressTimer;
+      const clearCacheAndReload = () => {
+        localStorage.clear();
+        const url = new URL(window.location.href);
+        url.searchParams.set("version", Date.now().toString(36));
+        window.location.replace(url.toString());
+      };
+
+      const startPressTimer = () => {
+        pressTimer = setTimeout(clearCacheAndReload, 3000); // 3秒
+      };
+      const cancelPressTimer = () => {
+        clearTimeout(pressTimer);
+      };
+      document.addEventListener("touchstart", startPressTimer);
+      document.addEventListener("touchend", cancelPressTimer);
+      document.addEventListener("touchcancel", cancelPressTimer);
+      fetch(window.location.href, {
+        method: "HEAD", // 使用HEAD请求只获取头信息，减少带宽消耗 [1](@ref)
+        cache: "no-store", // 强制绕过浏览器缓存，获取最新头信息 [6](@ref)
+      })
+        .then((response) => {
+          if (!response.ok)
+            throw new Error(
+              `Network error: ${response.status} ${response.statusText}`
+            );
+          // 获取所有可能的缓存标识
+          const etag = response.headers.get("ETag");
+          const lastModified = response.headers.get("Last-Modified");
+          const url = new URL(window.location.href);
+          // 跳过已包含版本参数的URL [6](@ref)
+          if (url.searchParams.has("ver") || url.searchParams.has("version"))
+            return;
+          // 优先使用ETag，不存在时使用Last-Modified [2](@ref)
+          const cacheKey = etag ? "ETag" : "Last-Modified";
+          const cacheValue = etag || lastModified;
+          if (!cacheValue) {
+            url.searchParams.set("version", Date.now().toString(36));
+            window.location.replace(url.toString());
+            return;
+          }
+
+          const storedValue = localStorage.getItem(cacheKey);
+          // 检测到更新时处理逻辑
+          if (storedValue !== cacheValue) {
+            localStorage.setItem(cacheKey, cacheValue);
+            // 添加随机版本参数强制刷新 [6](@ref)
+            url.searchParams.set("version", Date.now().toString(36));
+            window.location.replace(url.toString());
+          }
+        })
+        .catch((error) => {
+          console.error("Cache check failed:", error);
+          // 可添加降级策略，如定时重试
+        });
+    </script>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
