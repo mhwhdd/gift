@@ -83,7 +83,9 @@ DATABASES = {
         'NAME': 'db_gift',
         'USER': 'admin',
         'PASSWORD': '123',
-        'HOST': '192.168.1.176'
+        # 'HOST': '192.168.1.176'
+        'HOST': '192.168.0.104'
+
     }
 }
 

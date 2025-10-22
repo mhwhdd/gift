@@ -1,4 +1,6 @@
 from rest_framework import serializers
+
+from utils.encrypt import PasswordEncryptor
 from .models import User
 from django.utils import timezone
 
@@ -19,16 +21,21 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = [
-            'user_id', 'username', 'age', 'gender', 'gender_display',
-            'create_time', 'is_deleted', 'introduction', 'address', 'phone_number'
-        ]
+        fields = '__all__'
+        # fields = ['username', 'password',  'phone_number', 'age', 'gender']
         read_only_fields = ['user_id', 'create_time']
+        extra_kwargs = {
+            'username': {'required': True},
+            'password': { 'required': True},
+            'phone_number': {'required': True}
+        }
 
     def validate_phone_number(self, value):
-        """自定义电话号码验证"""
-        if value and not value.isdigit():
-            raise serializers.ValidationError("电话号码只能包含数字")
+        import re
+        if not re.match(r'^1[3-9]\d{9}$', value):
+            raise serializers.ValidationError("手机号码格式不正确")
+        if User.objects.filter(phone_number=value).exists():
+            raise serializers.ValidationError("手机号码已被注册")
         return value
 
     def create(self, validated_data):
@@ -39,4 +46,6 @@ class UserSerializer(serializers.ModelSerializer):
             validated_data['user_id'] = last_user.user_id + 1
         else:
             validated_data['user_id'] = 10000
+        plain_password = validated_data['password']
+        validated_data['password'] = PasswordEncryptor.set_password(plain_password)
         return super().create(validated_data)
