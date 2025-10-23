@@ -1,33 +1,20 @@
-from rest_framework import serializers
-
+from apps.user.models import User
 from utils.encrypt import PasswordEncryptor
-from .models import User
-from django.utils import timezone
-
-
-class UserSerializer(serializers.ModelSerializer):
-    # 自定义时间序列化格式
-    create_time = serializers.DateTimeField(
-        format='%Y-%m-%d %H:%M:%S',
-        read_only=True,
-        default=timezone.now
-    )
-
-    # 显示性别选择项的显示值而非数字
-    gender_display = serializers.CharField(
-        source='get_gender_display',
-        read_only=True
-    )
+from .base import UserSerializer
+from rest_framework import serializers
+class UserRegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = '__all__'
-        # fields = ['username', 'password',  'phone_number', 'age', 'gender']
-        read_only_fields = ['user_id', 'create_time']
+        fields = ['username', 'birthday', 'age', 'gender', 'phone_number','password']
+        # 可以为字段额外添加属性，例如使其均为非必填
         extra_kwargs = {
             'username': {'required': True},
-            'password': { 'required': True},
-            'phone_number': {'required': True}
+            'birthday': {'required': False},
+            'age': {'required': False},
+            'gender': {'required': False},
+            'phone_number': {'required': True},
+            'password': {'required': True},
         }
 
     def validate_phone_number(self, value):

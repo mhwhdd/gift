@@ -8,6 +8,7 @@ class User(models.Model):
     # 基本信息字段
     username = models.CharField(max_length=50, unique=True, verbose_name='用户名')
     age = models.IntegerField(verbose_name='用户年龄', null=True, blank=True)
+    birthday = models.DateField(verbose_name='用户生日', null=True, blank=True)
     # 性别选择
     GENDER_CHOICES = (
         (1, '男'),

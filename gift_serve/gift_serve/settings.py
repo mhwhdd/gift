@@ -41,9 +41,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'django_filters',
     "apps.user",
 ]
-
+REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+}
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -83,8 +86,8 @@ DATABASES = {
         'NAME': 'db_gift',
         'USER': 'admin',
         'PASSWORD': '123',
-        # 'HOST': '192.168.1.176'
-        'HOST': '192.168.0.104'
+        'HOST': '192.168.1.176'
+        # 'HOST': '192.168.0.104'
 
     }
 }
