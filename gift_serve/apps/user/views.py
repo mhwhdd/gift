@@ -4,6 +4,8 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from utils.token_utils import JWTTokenManager
 from .models import User
 from .serializers.base import UserSerializer
 from .serializers.register import UserRegisterSerializer
@@ -161,12 +163,15 @@ class LoginView(APIView):
         # 验证用户
         if user is not None:
             print("======================{}".format(user))
+            token = JWTTokenManager.create_token(user.username, user.password)
+            print("token={}".format(token))
             if not user.is_deleted:
                 # login(request, user)  # Django 会话登录
                 return Response({
                     'code': 200,
                     'message': '登录成功',
                     'data': {
+                        "token": token,
                         'user_id': user.user_id,
                         'username': user.username,
                         'login_type': login_type
@@ -345,7 +350,6 @@ class UserDestroyAPIView(APIView):
             "data": "",
             # 注意：除非明确序列化，否则这里不应返回密码信息
         }, status=status.HTTP_200_OK)
-
 
 
 

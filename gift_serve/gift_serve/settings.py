@@ -30,6 +30,33 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+# JWT配置
+JWT_CONFIG = {
+     'TOKEN_EXPIRY_DAYS': 7,  # Token默认有效期7天
+    'ALGORITHM': 'HS256',
+    # 全局白名单URL列表（这些路径不需要Token验证）
+    'WHITE_LIST': [
+        '/api/login/',           # 登录接口
+        '/api/register/',        # 注册接口
+        '/admin/',                    # Django后台管理
+        '/api/docs/',                 # API文档
+        '/health/',                   # 健康检查
+        r'^/media/',                  # 媒体文件路径（正则匹配）
+        r'^/static/',                 # 静态文件路径（正则匹配）
+        # 您可以在此继续添加其他不需要认证的路径...
+    ],
+}
+# 中间件配置
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'middleware.jwt_middleware.JWTAuthenticationMiddleware'
+]
 
 # Application definition
 
@@ -46,16 +73,31 @@ INSTALLED_APPS = [
 ]
 REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        # 可以注释掉或移除默认的认证类，或者使用自定义的
+        # 'rest_framework.authentication.SessionAuthentication',
+        # 'rest_framework.authentication.BasicAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        # 设置为允许所有访问，由中间件控制权限
+        'rest_framework.permissions.AllowAny',
+    ],
+    # 默认认证方案类
+    # 'DEFAULT_AUTHENTICATION_CLASSES': [
+    #     # 可以保留其他认证方式，但中间件会优先处理JWT
+    #     'rest_framework.authentication.SessionAuthentication',
+    #     'rest_framework.authentication.BasicAuthentication',
+    # ],
+    # # 默认权限类：全局设置为需要认证，视图中可覆盖
+    # 'DEFAULT_PERMISSION_CLASSES': [
+    #     'rest_framework.permissions.IsAuthenticated',
+    # ],
+    # 'DEFAULT_PERMISSION_CLASSES': [
+    #     'rest_framework.permissions.IsAuthenticated',
+    # ],
+    # 'EXCEPTION_HANDLER': 'utils.exception_handler.custom_exception_handler',
 }
-MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-]
+
 
 ROOT_URLCONF = 'gift_serve.urls'
 
