@@ -9,20 +9,64 @@ from .serializers.base import UserSerializer
 from .serializers.register import UserRegisterSerializer
 from .serializers.update import UserUpdateSerializer
 from .serializers.filters import UserFilter
-from  .serializers.pwd import UserUpdatePwdSerializer
+from .serializers.pwd import UserUpdatePwdSerializer
+from .serializers.dele import UserDeleteSerializer
+from .serializers.destroy import UserDestroySerializer
 from utils.encrypt import PasswordEncryptor
 from rest_framework.generics import ListAPIView
+from rest_framework.pagination import PageNumberPagination
 
+
+class StandardPageNumberPagination(PageNumberPagination):
+    """
+    自定义分页器，保持与原有响应结构一致
+    """
+    page_size = 20  # 默认每页显示条数
+    page_size_query_param = 'size'  # 前端控制每页大小的参数名
+    max_page_size = 100  # 前端最多能设置的每页大小
+
+    def get_paginated_response(self, data):
+        """
+        重写分页响应格式，保持与您原有的返回结构一致
+        """
+        from rest_framework.response import Response
+
+        return Response({
+            'code': 200,
+            'message': '获取用户列表成功',
+            'data': {
+                'list': data,  # 分页后的数据
+                'pagination': {
+                    'total': self.page.paginator.count,  # 总记录数
+                    'page': self.page.number,  # 当前页码
+                    'size': self.get_page_size(self.request),  # 当前页大小
+                    'pages': self.page.paginator.num_pages,  # 总页数
+                    'has_next': self.page.has_next(),  # 是否有下一页
+                    'has_previous': self.page.has_previous(),  # 是否有上一页
+                }
+            }
+        })
 
 # Create your views here.
 class UserListAPIView(ListAPIView):
     queryset = User.objects.filter(is_deleted=False)
-    serializer_class = UserSerializer #序列化输出数据
+    serializer_class = UserSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_class = UserFilter # 过滤
+    filterset_class = UserFilter
+    pagination_class = StandardPageNumberPagination  # 添加分页器
+
+    # 可以删除原有的get方法，ListAPIView会自动处理分页
+    # 如果希望保持完全控制，可以保留但需要修改：
     def get(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset()) #过滤查询
-        serializer = self.get_serializer(queryset, many=True) #序列化
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        # 如果没有分页，则返回所有数据（保持兼容性）
+        serializer = self.get_serializer(queryset, many=True)
         return Response({
             'code': 200,
             'message': '获取用户列表成功',
@@ -144,9 +188,9 @@ class LoginView(APIView):
         try:
             user = User.objects.filter(username=username).first()
             ser_data = UserSerializer(user).data
-            db_password=ser_data['password']
+            db_password = ser_data['password']
             # 调用工具中的 check_password 方法验证密码
-            if  PasswordEncryptor.check_password(password, db_password):  # 假设 check_password 接受明文密码和加密密码
+            if PasswordEncryptor.check_password(password, db_password):  # 假设 check_password 接受明文密码和加密密码
                 return user
         except User.DoesNotExist:
             pass
@@ -164,6 +208,7 @@ class LoginView(APIView):
         except User.DoesNotExist:
             pass
         return None
+
 
 class UserUpdateAPIView(APIView):
     def post(self, request):
@@ -217,9 +262,10 @@ class UserUpdateAPIView(APIView):
         else:
             return Response({
                 "error": "更新失败",
-                "details": update_serializer.errors
+                "data": update_serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
-    
+
+
 class UserUpdatePasswordAPIView(APIView):
     def post(self, request):
         # 1. 使用 UserUpdatePwdSerializer 验证输入数据
@@ -245,29 +291,77 @@ class UserUpdatePasswordAPIView(APIView):
         updated_user = pwd_ser.update(user, pwd_ser.validated_data)
         return Response({
             "message": "密码更新成功",
-            "user_id": UserSerializer(updated_user).data,
+            "data": UserSerializer(updated_user).data,
             # 注意：除非明确序列化，否则这里不应返回密码信息
         }, status=status.HTTP_200_OK)
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+class UserDeleteAPIView(APIView):
+    def post(self, request):
+        del_ser = UserDeleteSerializer(data=request.data)
+
+        if not del_ser.is_valid():
+            return Response(
+                {"error": "数据验证失败", "details": del_ser.errors},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 2. 获取user_id并查询用户
+        user_id = request.data.get('user_id')
+        try:
+            user = User.objects.get(user_id=user_id)
+        except User.DoesNotExist:
+            return Response(
+                {"error": f"用户不存在 (user_id: {user_id})"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        user.is_deleted = True
+        user.save()
+        return Response({
+            "message": "删除用户成功",
+            "user_id": UserSerializer(user).data,
+            # 注意：除非明确序列化，否则这里不应返回密码信息
+        }, status=status.HTTP_200_OK)
+
+class UserDestroyAPIView(APIView):
+    def post(self, request):
+        destroy_ser = UserDestroySerializer(data=request.data)
+        if not destroy_ser.is_valid():
+            return Response(
+                {"error": "数据验证失败", "details": destroy_ser.errors},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        user_id = request.data.get('user_id')
+        try:
+            user = User.objects.get(user_id=user_id)
+        except User.DoesNotExist:
+            return Response(
+                {"error": f"用户不存在 (user_id: {user_id})"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        user.delete()
+        return Response({
+            "message": "销毁用户成功",
+            "data": "",
+            # 注意：除非明确序列化，否则这里不应返回密码信息
+        }, status=status.HTTP_200_OK)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
