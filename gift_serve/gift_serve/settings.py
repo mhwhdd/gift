@@ -9,9 +9,12 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
+import datetime
 import os
 import sys
 from pathlib import Path
+
+from django.core.cache.backends.redis import RedisCache
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,37 +29,6 @@ sys.path.insert(0, os.path.join(BASE_DIR, "apps"))
 SECRET_KEY = 'django-insecure-w)anyf5d@a-^1gu=y#of(6@f)m7&dd*j8yh1xc2^ac1@93$ww1'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
-
-# JWT配置
-JWT_CONFIG = {
-     'TOKEN_EXPIRY_DAYS': 7,  # Token默认有效期7天
-    'ALGORITHM': 'HS256',
-    # 全局白名单URL列表（这些路径不需要Token验证）
-    'WHITE_LIST': [
-        '/api/login/',           # 登录接口
-        '/api/register/',        # 注册接口
-        '/admin/',                    # Django后台管理
-        '/api/docs/',                 # API文档
-        '/health/',                   # 健康检查
-        r'^/media/',                  # 媒体文件路径（正则匹配）
-        r'^/static/',                 # 静态文件路径（正则匹配）
-        # 您可以在此继续添加其他不需要认证的路径...
-    ],
-}
-# 中间件配置
-MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'middleware.jwt_middleware.JWTAuthenticationMiddleware'
-]
 
 # Application definition
 
@@ -71,32 +43,74 @@ INSTALLED_APPS = [
     'django_filters',
     "apps.user",
 ]
+
+
+
+DEBUG = True
+
+ALLOWED_HOSTS = []
+
+
 REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        # 可以注释掉或移除默认的认证类，或者使用自定义的
-        # 'rest_framework.authentication.SessionAuthentication',
-        # 'rest_framework.authentication.BasicAuthentication',
-    ],
+    # 'DEFAULT_PERMISSION_CLASSES': [],
+    #  'DEFAULT_AUTHENTICATION_CLASSES': [],
+    # 'EXCEPTION_HANDLER': 'middleware.jwt_middleware.JWTAuthenticationMiddleware',
+    # 'DEFAULT_AUTHENTICATION_CLASSES': [
+    #     # 可以注释掉或移除默认的认证类，或者使用自定义的
+    #     # 'rest_framework.authentication.SessionAuthentication',
+    #     # 'rest_framework.authentication.BasicAuthentication',
+    # ],
     'DEFAULT_PERMISSION_CLASSES': [
         # 设置为允许所有访问，由中间件控制权限
         'rest_framework.permissions.AllowAny',
     ],
-    # 默认认证方案类
-    # 'DEFAULT_AUTHENTICATION_CLASSES': [
-    #     # 可以保留其他认证方式，但中间件会优先处理JWT
-    #     'rest_framework.authentication.SessionAuthentication',
-    #     'rest_framework.authentication.BasicAuthentication',
-    # ],
-    # # 默认权限类：全局设置为需要认证，视图中可覆盖
+    # 'DEFAULT_AUTHENTICATION_CLASSES': [],
     # 'DEFAULT_PERMISSION_CLASSES': [
     #     'rest_framework.permissions.IsAuthenticated',
     # ],
-    # 'DEFAULT_PERMISSION_CLASSES': [
-    #     'rest_framework.permissions.IsAuthenticated',
-    # ],
-    # 'EXCEPTION_HANDLER': 'utils.exception_handler.custom_exception_handler',
+    'EXCEPTION_HANDLER': 'utils.exceptions.custom_exception_handler',
+
 }
+
+# JWT配置
+JWT_CONFIG = {
+    'SECRET_KEY': SECRET_KEY,  # 生产环境请更改
+    'ALGORITHM': 'HS256',  # 加密算法
+    'ACCESS_TOKEN_LIFETIME': datetime.timedelta(hours=24),  # 访问令牌有效期
+    'REFRESH_TOKEN_LIFETIME': datetime.timedelta(days=7),  # 刷新令牌有效期
+}
+# 不需要Token验证的白名单路径
+WHITE_LIST   = [
+    '/api/login/',
+    '/api/register/',
+    '/admin/',
+    '/api/docs/',
+]
+
+# Redis配置（用于黑名单）
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
+# 中间件配置
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'middleware.jwt_middleware.JWTAuthenticationMiddleware'
+]
+
+
 
 
 ROOT_URLCONF = 'gift_serve.urls'

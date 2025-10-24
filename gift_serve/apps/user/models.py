@@ -7,6 +7,8 @@ class User(models.Model):
     user_id = models.AutoField(primary_key=True, verbose_name='用户ID', default=10000)
     # 基本信息字段
     username = models.CharField(max_length=50, unique=True, verbose_name='用户名')
+    user_icon = models.TextField(null=True, blank=True, verbose_name='用户头像')
+
     age = models.IntegerField(verbose_name='用户年龄', null=True, blank=True)
     birthday = models.DateField(verbose_name='用户生日', null=True, blank=True)
     # 性别选择

@@ -6,10 +6,11 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username', 'birthday', 'age', 'gender', 'phone_number','password']
+        fields = ['username','user_icon', 'birthday', 'age', 'gender', 'phone_number','password']
         # 可以为字段额外添加属性，例如使其均为非必填
         extra_kwargs = {
             'username': {'required': True},
+            'user_icon': {'required': False},
             'birthday': {'required': False},
             'age': {'required': False},
             'gender': {'required': False},

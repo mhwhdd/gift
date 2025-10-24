@@ -1,3 +1,6 @@
+import json
+
+from django.conf import settings
 from django.shortcuts import render
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
@@ -5,7 +8,7 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from utils.token_utils import JWTTokenManager
+from utils.token import TokenManager
 from .models import User
 from .serializers.base import UserSerializer
 from .serializers.register import UserRegisterSerializer
@@ -123,7 +126,7 @@ class UserRegistrationAPIView(APIView):
 
 class LoginView(APIView):
     """支持用户名和手机号登录的接口"""
-
+    # permission_classes = (IsAuthenticatedOrReadOnly, )
     def post(self, request):
         login_type = request.data.get('login_type')  # 'username' 或 'phone'
         password = request.data.get('password')
@@ -162,16 +165,26 @@ class LoginView(APIView):
 
         # 验证用户
         if user is not None:
-            print("======================{}".format(user))
-            token = JWTTokenManager.create_token(user.username, user.password)
-            print("token={}".format(token))
+            # print("======================{}".format(settings.JWT_CONFIG['ACCESS_TOKEN_EXPIRY']))
+            # 生成access token和refresh token
+            # user_data = {
+            #     "user_id":user.user_id,
+            #     "username":user.username
+            # }
+            # 生成Token
+            access_token = TokenManager.create_token(user.user_id, user.username, 'access')
+            refresh_token = TokenManager.create_token(user.user_id, user.username, 'refresh')
+            # print("token={}".format(token))
             if not user.is_deleted:
                 # login(request, user)  # Django 会话登录
                 return Response({
                     'code': 200,
                     'message': '登录成功',
                     'data': {
-                        "token": token,
+                        'access_token': access_token,
+                        'refresh_token': refresh_token,
+                        'access_token_in':settings.JWT_CONFIG['ACCESS_TOKEN_LIFETIME'],
+                        'refresh_token_in': settings.JWT_CONFIG['REFRESH_TOKEN_LIFETIME'],
                         'user_id': user.user_id,
                         'username': user.username,
                         'login_type': login_type
@@ -351,8 +364,60 @@ class UserDestroyAPIView(APIView):
             # 注意：除非明确序列化，否则这里不应返回密码信息
         }, status=status.HTTP_200_OK)
 
+class LogoutAPIView(APIView):
+    pass
+    def post(self, request):
+        try:
+            token = TokenManager.get_token_from_request(request)
+            if token:
+                # 验证Token获取payload
+                is_valid, payload = TokenManager.verify_token(token)
+                if is_valid:
+                    # 将Token加入黑名单
+                    TokenManager.add_to_blacklist(token, payload)
+            return Response({
+                'code': 200,
+                'message': '登出成功'
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                'code': 500,
+                'message': f'退出登录失败: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class TokenRefreshView(APIView):
+    """Token刷新视图（白名单接口示例）"""
+
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            refresh_token = data.get('refresh_token')
+
+            if not refresh_token:
+                return  Response({
+                'code': 400,
+                'message': "刷新Token不能为空"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+            success, result = TokenManager.refresh_token(refresh_token)
+            if success:
+                return  Response({
+                'code': 200,
+                'message': 'Token刷新成功'
+            }, status=status.HTTP_200_OK)
+            else:
+                return  Response({
+                'code': 200,
+                'message': result['error']
+            }, status=status.HTTP_401_UNAUTHORIZED)
+
+        except Exception as e:
+            return Response({
+                'code': 500,
+                'message': f'Token刷新失败: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 

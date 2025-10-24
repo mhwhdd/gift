@@ -16,10 +16,11 @@ class UserUpdateSerializer(serializers.ModelSerializer):  # 继承原序列化�
     class Meta:  # 继承原序列化器的Meta类
         user_id = serializers.IntegerField(required=True, write_only=True)
         model = User
-        fields = ['user_id','username', 'birthday', 'age', 'gender', 'phone_number']
+        fields = ['user_id','username','user_icon', 'birthday', 'age', 'gender', 'phone_number']
         extra_kwargs = {
             'username': {'required': False, 'allow_blank': False},
             'birthday': {'required': False},
+            'user_icon': {'required': False},
             'age': {'required': False},
             'gender': {'required': False},
             'phone_number': {'required': False, 'allow_blank': False}

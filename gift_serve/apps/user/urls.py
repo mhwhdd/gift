@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (UserListAPIView,UserRegistrationAPIView,LoginView,
                     UserUpdateAPIView,UserUpdatePasswordAPIView,UserDeleteAPIView,
-                    UserDestroyAPIView
+                    UserDestroyAPIView,LogoutAPIView
                     )
 
 urlpatterns = [
@@ -12,5 +12,6 @@ urlpatterns = [
     path('updatepwd/', UserUpdatePasswordAPIView.as_view(), name='update-password'),
     path('delete/', UserDeleteAPIView.as_view(), name='user-delete'),
     path('destroy/', UserDestroyAPIView.as_view(), name='user-destroy'),
+    path('logout/', LogoutAPIView.as_view(), name='logout'),
 
 ]
