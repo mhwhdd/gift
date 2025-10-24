@@ -1,0 +1,22 @@
+# Python bytecode cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Editor and IDE files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Database files (if applicable)
+*.sqlite3
+*.db
