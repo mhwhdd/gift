@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'django_filters',
     "apps.user",
+    "apps.tag"
 ]
 
 
@@ -52,7 +53,11 @@ ALLOWED_HOSTS = []
 
 
 REST_FRAMEWORK = {
-    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ],
     # 'DEFAULT_PERMISSION_CLASSES': [],
     #  'DEFAULT_AUTHENTICATION_CLASSES': [],
     # 'EXCEPTION_HANDLER': 'middleware.jwt_middleware.JWTAuthenticationMiddleware',
@@ -140,10 +145,10 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'db_gift',
-        'USER': 'admin',
+        'USER': 'admin1',
         'PASSWORD': '123',
-        'HOST': '192.168.1.176'
-        # 'HOST': '192.168.0.104'
+        # 'HOST': '192.168.1.176'
+        'HOST': '192.168.0.105'
 
     }
 }

@@ -33,16 +33,12 @@ class TokenManager:
     @staticmethod
     def verify_token(token: str) -> Tuple[bool, Dict]:
         """验证Token有效性"""
-        print("---------",token)
         try:
             payload = jwt.decode(
                 token,
                 settings.JWT_CONFIG['SECRET_KEY'],
                 algorithms=[settings.JWT_CONFIG['ALGORITHM']]
             )
-            print("payload===",payload)
-            print("检查Token是否在黑名单中===",TokenManager.is_blacklisted(token))
-
             # 检查Token是否在黑名单中
             if TokenManager.is_blacklisted(token):
                 print("==============")

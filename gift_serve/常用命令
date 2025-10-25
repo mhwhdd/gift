@@ -2,3 +2,9 @@ python manage.py makemigrations user
 python manage.py migrate user
 pip freeze > requirements.txt
 pip install -r requirements.txt
+python manage.py runserver 8081
+Get-ChildItem -Path . -Recurse -Filter "migrations" -Directory | ForEach-Object {
+>>   Get-ChildItem -Path $_.FullName -Filter "*.py" -File | Where-Object {
+>>     $_.Name -ne "__init__.py"
+>>   } | Remove-Item -Force
+>> }
